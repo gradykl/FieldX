@@ -73,8 +73,45 @@ h3{margin:0;font-size:15px;font-weight:700}
 .r{text-align:right}
 .mrow{width:100%;min-height:54px;padding:8px 20px;border:0;border-bottom:1px solid var(--line2);background:transparent;text-align:left;cursor:pointer}
 .mrow:hover{background:var(--sunk)}
-.mrow[aria-pressed="true"]{background:var(--sel)}
-.mrow[aria-pressed="true"] .pname{color:var(--accent)}
+.mline{display:flex;align-items:center;border-bottom:1px solid var(--line2)}
+.mline:hover{background:var(--sunk)}
+.mline.on{background:var(--sel)}
+.mline.on .pname{color:var(--accent)}
+.mline .mrow{flex:1;min-width:0;border-bottom:0;background:transparent}
+.mline .mrow:hover{background:transparent}
+.mhead{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.mhead .thead{flex:1;border:0}
+.tsp{flex:none;width:72px;margin-right:16px}
+.tbtn{flex:none;width:72px;height:36px;margin-right:16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-weight:700;font-size:13px;cursor:pointer}
+.tbtn:hover{border-color:var(--up);color:var(--up)}
+.tbtn.sm{width:auto;height:32px;margin:0 0 0 6px;padding:0 12px}
+.tbtn.sell:hover{border-color:var(--dn);color:var(--dn)}
+.sheet-bar{display:none}
+.backdrop{display:none}
+html.locked{overflow:hidden}
+@media (min-width:961px){
+  aside.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);max-height:calc(100vh - 32px - env(safe-area-inset-top,0px));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-bottom:2px}
+}
+@media (max-width:960px){
+  aside.side{position:fixed;left:0;right:0;bottom:0;z-index:60;max-height:88vh;max-height:88dvh;overflow-y:auto;overscroll-behavior:contain;background:var(--bg);border-radius:20px 20px 0 0;padding:0 14px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.25);transform:translateY(105%);visibility:hidden;gap:12px;max-width:none}
+  aside.side.open{transform:none;visibility:visible}
+  .sheet-bar{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2;background:var(--bg);padding:10px 0 6px;touch-action:none}
+  .sheet-bar .grab{width:44px;height:5px;border-radius:3px;background:var(--neutral);margin-left:calc(50% - 22px - 22px)}
+  .backdrop{display:block;position:fixed;inset:0;z-index:59;background:rgba(0,0,0,.4)}
+  .backdrop[hidden]{display:none}
+}
+@media (max-width:960px) and (prefers-reduced-motion:no-preference){
+  aside.side{transition:transform .25s ease,visibility 0s linear .25s}
+  aside.side.open{transition:transform .25s ease}
+}
+@media (max-width:700px){
+  .mkt-inner{min-width:0!important}
+  .grid-mkt{grid-template-columns:minmax(0,1fr) auto auto!important;padding-left:14px!important}
+  .c-rank,.c-pos,.c-list,.c-ppg,.c-vol,.c-avail,.c-hold{display:none!important}
+  .tbtn{width:64px;margin-right:12px}
+  .tsp{width:64px;margin-right:12px}
+  .mline .mrow{padding-right:4px}
+}
 .who{display:flex;align-items:center;gap:12px;min-width:0}
 .who .nm{min-width:0}.who .nm b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .who .nm span{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
@@ -237,7 +274,7 @@ function initials(h){ var w=h.trim().split(/\s+/); return ((w[0]||"?")[0]+(w[1]?
 function avatar(id,handle,size){ return '<span class="avatar" aria-hidden="true" style="width:'+size+'px;height:'+size+'px;font-size:'+Math.round(size*.38)+'px;background:'+colorFor(id)+'">'+esc(initials(handle))+'</span>'; }
 
 /* ---------- App state ---------- */
-var st={ view:"market", sel:"JSN", pos:"ALL", q:"", reopens:[], closed:false, isOwner:false, side:"buy", qty:1, msg:"", msgOk:true, pending:false,
+var st={ view:"market", sel:"JSN", pos:"ALL", q:"", sheet:false, sheetOpen:false, pendingTrade:null, sheetReturn:null, reopens:[], closed:false, isOwner:false, side:"buy", qty:1, msg:"", msgOk:true, pending:false,
   me:null, email:"", traders:[], loaded:false, offline:false, canTrade:null, handle:"", createErr:"",
   authMode:"in", authEmail:"", authErr:"", authInfo:"", authBusy:false, noConfig:false };
 var R=replay([],Date.now(),[]);
@@ -311,7 +348,7 @@ function ticketHTML(l){
   var a=myAcc();
   if(!a) return '<section class="card pad">'+createForm()+'</section>';
   var t=ticketCalc(l,a), isBuy=st.side==="buy";
-  return '<section class="card pad" aria-labelledby="ot-h" style="display:flex;flex-direction:column;gap:14px">'+
+  return '<section class="card pad" id="ticket" aria-labelledby="ot-h" style="display:flex;flex-direction:column;gap:14px">'+
     '<h3 id="ot-h">Trade '+l.tk+'</h3>'+
     '<div class="seg" role="group" aria-label="Order side"><button type="button" class="buy" data-act="side" data-v="buy" aria-pressed="'+isBuy+'">Buy</button><button type="button" class="sell" data-act="side" data-v="sell" aria-pressed="'+!isBuy+'">Sell</button></div>'+
     '<div style="display:flex;flex-direction:column;gap:6px"><label for="qty" style="font-size:12px;color:var(--soft)">Shares (max <span id="maxq">'+t.max+'</span>)</label>'+
@@ -366,42 +403,46 @@ function renderMarket(){
   var html=status+upd+'<div class="row">'+
   '<section class="card mkt" aria-labelledby="mkt-h">'+
     '<div class="pad" style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;padding-bottom:16px">'+
-      '<div><h1 id="mkt-h">Player market</h1><p class="sub">Top 100 by total PPR points, 2026 season. 10 shares per player, up to '+MAXHOLD+' per person.</p></div>'+
+      '<div><h1 id="mkt-h">Player market</h1><p class="sub">'+PLAYERS.length+' players from the 2026 season. 10 shares per player, up to '+MAXHOLD+' per person.</p></div>'+
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><label for="q" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Search players</label><input class="field" id="q" type="search" placeholder="Search players or teams" value="'+esc(st.q)+'" style="height:40px;width:220px;max-width:100%" autocomplete="off"><div class="pills" role="group" aria-label="Filter by position">'+["ALL","QB","RB","WR","TE"].map(function(k){ return '<button type="button" class="pill" data-act="pos" data-v="'+k+'" aria-pressed="'+(st.pos===k)+'">'+(k==="ALL"?"All":k)+'</button>'; }).join("")+'</div></div>'+
     '</div>'+
-    '<div class="scroll"><div style="min-width:920px">'+
-      '<div class="grid-mkt thead"><span>#</span><span>Player</span><span>Pos</span><span class="r">Price</span><span class="r">Since update</span><span class="r">vs. list</span><span class="r">PPG</span><span class="r">Vol 24h</span><span class="r">Available</span><span class="r">Holders</span></div>'+
-      (shown.length?'':'<div class="empty">No players match “'+esc(st.q)+'”.</div>')+shown.map(function(r){ return '<button type="button" class="mrow grid-mkt" data-act="sel" data-v="'+r.tk+'" aria-pressed="'+(r.tk===st.sel)+'" aria-label="'+esc(r.p.name)+', '+fmt(r.price)+'">'+
-        '<span class="mono muted" style="font-size:12px">'+rank[r.tk]+'</span>'+
-        '<span class="who"><span class="disc" aria-hidden="true">'+r.p.ini+'</span><span class="nm"><b class="pname">'+esc(r.p.name)+'</b><span>'+r.tk+' · '+r.p.team+'</span></span></span>'+
-        '<span class="mono" style="font-size:12px;color:var(--soft)">'+r.p.pos+'</span>'+
+    '<div class="scroll"><div class="mkt-inner" style="min-width:1000px">'+
+      '<div class="mline mhead"><div class="grid-mkt thead"><span class="c-rank">#</span><span>Player</span><span class="c-pos">Pos</span><span class="r">Price</span><span class="r">Since update</span><span class="r c-list">vs. list</span><span class="r c-ppg">PPG</span><span class="r c-vol">Vol 24h</span><span class="r c-avail">Available</span><span class="r c-hold">Holders</span></div><span class="tsp" aria-hidden="true"></span></div>'+
+      (shown.length?'':'<div class="empty">No players match “'+esc(st.q)+'”.</div>')+shown.map(function(r){ var on=r.tk===st.sel; return '<div class="mline'+(on?' on':'')+'">'+
+        '<button type="button" class="mrow grid-mkt" data-act="sel" data-v="'+r.tk+'" aria-pressed="'+on+'" aria-label="'+esc(r.p.name)+', '+fmt(r.price)+'">'+
+        '<span class="mono muted c-rank" style="font-size:12px">'+rank[r.tk]+'</span>'+
+        '<span class="who"><span class="disc" aria-hidden="true">'+r.p.ini+'</span><span class="nm"><b class="pname">'+esc(r.p.name)+'</b><span>'+r.tk+' · '+r.p.pos+' · '+r.p.team+'</span></span></span>'+
+        '<span class="mono c-pos" style="font-size:12px;color:var(--soft)">'+r.p.pos+'</span>'+
         '<span class="mono r" style="font-weight:600">'+fmt(r.price)+'</span>'+
         (r.sinceUpd==null?'<span class="mono r muted" style="font-size:13px">—</span>':'<span class="mono r '+cls(r.sinceUpd)+'" style="font-size:13px">'+pct(r.sinceUpd)+'</span>')+
-        '<span class="mono r '+cls(r.chg)+'" style="font-size:13px">'+pct(r.chg)+'</span>'+
-        '<span class="mono r" style="font-size:13px">'+r.ppg.toFixed(1)+'</span>'+
-        '<span class="mono r" style="font-size:13px;color:var(--soft)">'+r.vol+' sh</span>'+
-        '<span class="mono r" style="font-size:13px;color:var(--soft)">'+(SHARES-r.s)+' / '+SHARES+'</span>'+
-        '<span class="mono r" style="font-size:13px;color:var(--soft)">'+r.holders+'</span></button>'; }).join("")+
+        '<span class="mono r c-list '+cls(r.chg)+'" style="font-size:13px">'+pct(r.chg)+'</span>'+
+        '<span class="mono r c-ppg" style="font-size:13px">'+r.ppg.toFixed(1)+'</span>'+
+        '<span class="mono r c-vol" style="font-size:13px;color:var(--soft)">'+r.vol+' sh</span>'+
+        '<span class="mono r c-avail" style="font-size:13px;color:var(--soft)">'+(SHARES-r.s)+' / '+SHARES+'</span>'+
+        '<span class="mono r c-hold" style="font-size:13px;color:var(--soft)">'+r.holders+'</span></button>'+
+        '<button type="button" class="tbtn" data-act="trade" data-v="'+r.tk+'" aria-label="Trade '+esc(r.p.name)+'">Trade</button></div>'; }).join("")+
     '</div></div></section>'+
-  '<aside class="side">'+
-    '<section class="card pad" style="display:flex;flex-direction:column;gap:14px" aria-labelledby="sel-h">'+
-      '<div style="display:flex;align-items:center;gap:14px"><span class="disc" style="width:52px;height:52px;font-size:16px;color:var(--text)" aria-hidden="true">'+l.p.ini+'</span>'+
+  '<div class="backdrop" data-act="closesheet"'+(st.sheet?'':' hidden')+'></div>'+
+  '<aside class="side'+(st.sheetOpen?' open':'')+'" id="side"'+(st.sheet&&isSheet()?' role="dialog" aria-modal="true" aria-labelledby="sel-h"':'')+'>'+
+    '<div class="sheet-bar" id="sheetbar"><span class="grab" aria-hidden="true"></span><button type="button" class="sq" id="sheetclose" data-act="closesheet" aria-label="Close">✕</button></div>'+
+    '<section class="card pad" style="display:flex;flex-direction:column;gap:12px" aria-labelledby="sel-h">'+
+      '<div style="display:flex;align-items:center;gap:14px"><span class="disc" style="width:48px;height:48px;font-size:15px;color:var(--text)" aria-hidden="true">'+l.p.ini+'</span>'+
       '<div><h2 id="sel-h" style="font-size:20px">'+esc(l.p.name)+'</h2><div class="mono muted" style="font-size:12px">'+l.tk+' · '+l.p.pos+' · '+l.p.team+'</div></div></div>'+
       '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span class="bigprice">'+fmt(l.price)+'</span><span class="mono '+cls(l.chg)+'" style="font-size:15px">'+pct(l.chg)+'</span><span class="muted" style="font-size:12px">vs. list price '+fmt(l.pv)+'</span></div>'+
       (l.sinceUpd==null?'':'<div class="line" style="font-size:13px"><span class="muted">Since '+esc(R.lastSnap.label)+' update</span><span class="mono">'+fmt(l.beforeUpd)+' → '+fmt(l.price)+' <span class="'+cls(l.sinceUpd)+'">'+pct(l.sinceUpd)+'</span></span></div>')+
-      chart(l)+
+      '<div class="quad"><div><div class="k">Available</div><div class="v">'+(SHARES-l.s)+' / '+SHARES+'</div></div><div><div class="k">PPG</div><div class="v">'+l.ppg.toFixed(1)+'</div></div><div><div class="k">Holders</div><div class="v">'+l.holders+'</div></div><div><div class="k">You own</div><div class="v" style="color:var(--accent)">'+owned+'</div></div></div>'+
     '</section>'+
+    ticketHTML(l)+
+    '<section class="card pad" aria-label="Price history">'+chart(l)+'</section>'+
     '<section class="card pad" style="display:flex;flex-direction:column;gap:14px" aria-labelledby="bd-h">'+
       '<div class="line" style="align-items:baseline"><h3 id="bd-h">Price breakdown</h3><a href="#how-it-works" style="font-size:12px;color:var(--accent);font-weight:600">How it works</a></div>'+
       '<div class="bar" aria-hidden="true"><div style="width:'+(l.pv/(l.pv+l.mv)*100).toFixed(1)+'%;background:var(--accent-bg)"></div><div style="flex:1;background:var(--up)"></div></div>'+
       '<div class="split"><div class="box"><div style="font-size:12px;color:var(--soft)">Performance · 50%</div><div class="mono" style="font-size:18px;font-weight:600;margin-top:6px">'+fmt(l.pv/2)+'</div><div class="muted" style="font-size:12px;margin-top:2px">of '+fmt(l.pv)+' PV · '+l.ppg.toFixed(1)+' PPG</div></div>'+
       '<div class="box"><div style="font-size:12px;color:var(--soft)">Market · 50%</div><div class="mono" style="font-size:18px;font-weight:600;margin-top:6px">'+fmt(l.mv/2)+'</div><div class="muted" style="font-size:12px;margin-top:2px">of '+fmt(l.mv)+' MV · '+l.S.toFixed(2)+'× scarcity · '+l.D.toFixed(2)+'× demand</div></div></div>'+
-      '<div class="quad"><div><div class="k">Outstanding</div><div class="v">'+SHARES+'</div></div><div><div class="k">Available</div><div class="v">'+(SHARES-l.s)+'</div></div><div><div class="k">Holders</div><div class="v">'+l.holders+'</div></div><div><div class="k">You own</div><div class="v" style="color:var(--accent)">'+owned+'</div></div></div>'+
       (last?'<div class="box" style="display:flex;flex-direction:column;gap:6px;font-size:12px"><div style="color:var(--soft)"><b style="color:var(--text)">Last trade:</b> '+esc(lastWho?lastWho.handle:"Someone")+(last.side==="buy"?" bought ":" sold ")+last.q+' sh · '+when(last.t)+'</div>'+
         '<div class="line mono"><span class="muted">Market value</span><span>'+fmt(last.mvB)+' → '+fmt(last.mvA)+'</span></div>'+
         '<div class="line mono"><span class="muted">Price</span><span>'+fmt(last.pB)+' → '+fmt(last.pA)+' <span class="'+cls(last.pA-last.pB)+'">'+pct((last.pA/last.pB-1)*100)+'</span></span></div></div>':'')+
     '</section>'+
-    ticketHTML(l)+
   '</aside></div>';
   document.getElementById("v-market").innerHTML=html;
 }
@@ -426,8 +467,8 @@ function renderPortfolio(){
       '<div class="alloc" role="img" aria-label="Allocation of total value">'+alloc.filter(function(x){ return x.v>0.005; }).map(function(x){ return '<div style="width:'+(x.v/a.total*100).toFixed(2)+'%;background:'+x.col+'"></div>'; }).join("")+'</div>'+
       '<div class="legend">'+alloc.filter(function(x){ return x.v>0.005; }).map(function(x){ return '<span><i style="background:'+x.col+'"></i>'+x.name+' '+(x.v/a.total*100).toFixed(1)+'%</span>'; }).join("")+'</div></section>'+
     '<section class="card" aria-labelledby="ps-h"><div class="pad" style="padding-bottom:8px"><h2 id="ps-h">Positions</h2><p class="sub" style="font-size:13px">Entry price is your average cost per share. “Since update” is how much each position’s value has changed since the last stats update.</p></div>'+
-      (pos.length?'<div class="scroll"><table><thead><tr><th>Player</th><th class="n">Shares</th><th class="n">Entry price</th><th class="n">Current price</th><th class="n">Cost</th><th class="n">Value</th><th class="n">Gain</th><th class="n">Gain %</th><th class="n">Since update</th><th class="n">Weight</th></tr></thead><tbody>'+
-        pos.map(function(p){ return '<tr><td><button type="button" class="link" data-act="open" data-v="'+p.l.tk+'">'+esc(p.l.p.name)+'</button> <span class="mono muted" style="font-size:11px">'+p.l.tk+'</span></td><td class="n">'+p.q+'</td><td class="n">'+fmt(p.c/p.q)+'</td><td class="n">'+fmt(p.l.price)+'</td><td class="n">'+fmt(p.c)+'</td><td class="n">'+fmt(p.v)+'</td><td class="n '+cls(p.g)+'">'+sfmt(p.g)+'</td><td class="n '+cls(p.g)+'">'+pct(p.gp)+'</td>'+(p.l.beforeUpd==null?'<td class="n muted">—</td>':'<td class="n '+cls(p.l.price-p.l.beforeUpd)+'">'+sfmt(p.q*(p.l.price-p.l.beforeUpd))+'</td>')+'<td class="n">'+(p.v/a.total*100).toFixed(1)+'%</td></tr>'; }).join("")+
+      (pos.length?'<div class="scroll"><table><thead><tr><th>Player</th><th class="n">Shares</th><th class="n">Entry price</th><th class="n">Current price</th><th class="n">Cost</th><th class="n">Value</th><th class="n">Gain</th><th class="n">Gain %</th><th class="n">Since update</th><th class="n">Weight</th><th class="n"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Trade</span></th></tr></thead><tbody>'+
+        pos.map(function(p){ return '<tr><td><button type="button" class="link" data-act="open" data-v="'+p.l.tk+'">'+esc(p.l.p.name)+'</button> <span class="mono muted" style="font-size:11px">'+p.l.tk+'</span></td><td class="n">'+p.q+'</td><td class="n">'+fmt(p.c/p.q)+'</td><td class="n">'+fmt(p.l.price)+'</td><td class="n">'+fmt(p.c)+'</td><td class="n">'+fmt(p.v)+'</td><td class="n '+cls(p.g)+'">'+sfmt(p.g)+'</td><td class="n '+cls(p.g)+'">'+pct(p.gp)+'</td>'+(p.l.beforeUpd==null?'<td class="n muted">—</td>':'<td class="n '+cls(p.l.price-p.l.beforeUpd)+'">'+sfmt(p.q*(p.l.price-p.l.beforeUpd))+'</td>')+'<td class="n">'+(p.v/a.total*100).toFixed(1)+'%</td><td class="n"><button type="button" class="tbtn sm" data-act="trade" data-v="'+p.l.tk+'" data-side="buy" aria-label="Buy more '+esc(p.l.p.name)+'">Buy more</button><button type="button" class="tbtn sm sell" data-act="trade" data-v="'+p.l.tk+'" data-side="sell" aria-label="Sell '+esc(p.l.p.name)+'">Sell</button></td></tr>'; }).join("")+
       '</tbody></table></div>':'<div class="empty">No positions yet. <a href="#market" style="color:var(--accent);font-weight:600">Go to the market</a> to buy your first shares.</div>')+'</section>'+
     '<section class="card" aria-labelledby="th-h"><div class="pad" style="padding-bottom:8px"><h2 id="th-h">Trade history</h2></div>'+
       (a.log.length?'<div class="scroll"><table><thead><tr><th>Time</th><th>Order</th><th>Player</th><th class="n">Total</th><th class="n">Price before</th><th class="n">Price after</th></tr></thead><tbody>'+
@@ -474,6 +515,7 @@ function renderHow(){
   '</div>';
 }
 function render(){
+  var sideEl=document.getElementById("side"), sideTop=sideEl?sideEl.scrollTop:0;
   var ae=document.activeElement, aid=ae&&ae.id, ss=null, se=null;
   try{ if(ae&&ae.selectionStart!=null){ ss=ae.selectionStart; se=ae.selectionEnd; } }catch(e){}
   renderMe(); renderBanner();
@@ -484,8 +526,45 @@ function render(){
   else if(st.view==="portfolio") renderPortfolio();
   else if(st.view==="leaderboard") renderLeaderboard();
   else renderHow();
+  var sideNew=document.getElementById("side"); if(sideNew&&sideTop) sideNew.scrollTop=sideTop;
   restoreFocus(aid,ss,se);
 }
+/* ---------- Trade panel: sticky side panel on desktop, slide-up sheet on mobile ---------- */
+var SHEET_MQ=window.matchMedia?window.matchMedia("(max-width:960px)"):null;
+function isSheet(){ return !!(SHEET_MQ&&SHEET_MQ.matches); }
+function openSheet(){
+  st.sheet=true; st.sheetOpen=false; render();
+  document.documentElement.classList.add("locked");
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    st.sheetOpen=true; var el=document.getElementById("side"); if(el){ el.classList.add("open"); el.scrollTop=0; }
+    var c=document.getElementById("sheetclose"); if(c) c.focus({preventScroll:true});
+  }); });
+}
+function closeSheet(){
+  if(!st.sheet) return;
+  st.sheetOpen=false; var el=document.getElementById("side"); if(el){ el.style.transform=""; el.classList.remove("open"); }
+  document.documentElement.classList.remove("locked");
+  var back=st.sheetReturn;
+  setTimeout(function(){ st.sheet=false; render(); if(back){ var b=document.querySelector('[data-act="trade"][data-v="'+back+'"]')||document.querySelector('[data-act="sel"][data-v="'+back+'"]'); if(b) b.focus({preventScroll:true}); } },260);
+}
+function openTrade(tk,side,fromRow){
+  st.sel=tk; st.qty=1; st.msg=""; if(side) st.side=side; st.sheetReturn=tk;
+  if(isSheet()){ openSheet(); return; }
+  render();
+  var el=document.getElementById("side"); if(el) el.scrollTop=0;
+  if(!fromRow){
+    var t=document.getElementById("ticket"); if(t){ t.classList.remove("flash"); void t.offsetWidth; t.classList.add("flash"); }
+    var qi=document.getElementById("qty"); if(qi) qi.focus({preventScroll:true});
+  }
+}
+if(SHEET_MQ){ var mqh=function(){ if(!isSheet()&&st.sheet){ st.sheet=false; st.sheetOpen=false; document.documentElement.classList.remove("locked"); render(); } }; if(SHEET_MQ.addEventListener) SHEET_MQ.addEventListener("change",mqh); else if(SHEET_MQ.addListener) SHEET_MQ.addListener(mqh); }
+document.addEventListener("keydown",function(e){ if(e.key==="Escape"&&st.sheet) closeSheet(); });
+(function(){
+  var y0=null, dy=0;
+  document.addEventListener("touchstart",function(e){ if(!st.sheet) return; if(e.target.closest&&e.target.closest("#sheetbar")&&!e.target.closest("button")){ y0=e.touches[0].clientY; dy=0; var el=document.getElementById("side"); if(el) el.style.transition="none"; } },{passive:true});
+  document.addEventListener("touchmove",function(e){ if(y0===null) return; dy=Math.max(0,e.touches[0].clientY-y0); var el=document.getElementById("side"); if(el) el.style.transform="translateY("+dy+"px)"; },{passive:true});
+  document.addEventListener("touchend",function(){ if(y0===null) return; var el=document.getElementById("side"); if(el){ el.style.transition=""; } y0=null; if(dy>80) closeSheet(); else if(el) el.style.transform=""; });
+})();
 function restoreFocus(aid,ss,se){ if(aid){ var n=document.getElementById(aid); if(n){ n.focus(); try{ if(ss!=null) n.setSelectionRange(ss,se); }catch(e){} } } }
 function updateQuote(){
   var l=R.live[st.sel], a=myAcc(), q=document.getElementById("quote"); if(!a||!q) return;
@@ -498,7 +577,9 @@ function route(){
   var h=(location.hash||"").replace("#",""); st.view=VIEWS.indexOf(h)>=0?h:"market";
   VIEWS.forEach(function(v){ document.getElementById("v-"+v).classList.toggle("on",v===st.view); });
   document.querySelectorAll("[data-nav]").forEach(function(a){ if(a.getAttribute("data-nav")===st.view) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+  if(st.view!=="market"&&st.sheet){ st.sheet=false; st.sheetOpen=false; document.documentElement.classList.remove("locked"); }
   render();
+  if(st.view==="market"&&st.pendingTrade&&st.loaded){ var pt=st.pendingTrade; st.pendingTrade=null; openTrade(pt.tk,pt.side,!!pt.row); }
 }
 window.addEventListener("hashchange",function(){ route(); window.scrollTo(0,0); });
 
@@ -595,8 +676,10 @@ async function signedIn(session){
 document.addEventListener("click",function(e){
   var b=e.target.closest("[data-act]"); if(!b) return;
   var act=b.getAttribute("data-act"), v=b.getAttribute("data-v");
-  if(act==="sel"){ st.sel=v; st.qty=1; st.msg=""; render(); }
-  else if(act==="open"){ st.sel=v; st.qty=1; st.msg=""; location.hash="#market"; }
+  if(act==="sel"){ openTrade(v,null,true); }
+  else if(act==="trade"){ var sd=b.getAttribute("data-side"); if(st.view!=="market"){ st.pendingTrade={tk:v,side:sd}; location.hash="#market"; } else openTrade(v,sd,false); }
+  else if(act==="closesheet"){ closeSheet(); }
+  else if(act==="open"){ st.pendingTrade={tk:v,side:null,row:true}; location.hash="#market"; }
   else if(act==="pos"){ st.pos=v; render(); }
   else if(act==="side"){ st.side=v; st.qty=1; st.msg=""; render(); }
   else if(act==="inc"){ st.qty=Math.max(0,st.qty)+1; var i=document.getElementById("qty"); if(i) i.value=st.qty; updateQuote(); }
